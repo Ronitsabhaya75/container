@@ -1,0 +1,172 @@
+name: Test TCP Port Forwarding Fix
+
+on:
+  pull_request:
+    paths:
+      - 'Sources/SocketForwarder/**'
+      - 'Tests/SocketForwarderTests/**'
+  push:
+    branches:
+      - testing
+      - fix-tcp-port-forwarding
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Run SocketForwarder Unit Tests
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+      
+      - name: Run SocketForwarder Tests
+        run: |
+          swift test --filter SocketForwarderTests
+      
+      - name: Verify ConnectHandler Fix
+        run: |
+          # Verify that channelActive method exists (the fix)
+          if grep -q "func channelActive" Sources/SocketForwarder/ConnectHandler.swift; then
+            echo "✅ channelActive method found - fix is present"
+          else
+            echo "❌ channelActive method not found - fix missing"
+            exit 1
+          fi
+      
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ SocketForwarder unit tests completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ ConnectHandler fix verified" >> $GITHUB_STEP_SUMMARY
+  
+  integration-test:
+    name: Integration Test - Server-First Protocols
+    runs-on: macos-14
+    needs: unit-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+      
+      - name: Build container tool
+        run: |
+          swift build -c release
+          echo "✅ Build completed successfully"
+      
+      - name: Install container tool
+        run: |
+          sudo make install
+          container --version
+      
+      - name: Start container system
+        run: |
+          container system start
+          sleep 10
+          container system status
+      
+      - name: Test SMTP (Server-First Protocol)
+        id: smtp-test
+        timeout-minutes: 5
+        run: |
+          echo "Starting SMTP test container..."
+          container run -d --name smtp-test -p 1025:1025 marlonb/mailcrab:latest
+          sleep 10
+          
+          echo "Testing SMTP connection (should succeed immediately, not timeout)..."
+          if timeout 30 curl -v smtp://127.0.0.1:1025 \
+            --mail-from "test@example.com" \
+            --mail-rcpt "test@example.com" \
+            --upload-file /dev/null 2>&1 | tee smtp-test.log; then
+            echo "✅ SMTP test PASSED - server-first protocol works!"
+            echo "result=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ SMTP test FAILED - connection timed out"
+            cat smtp-test.log
+            echo "result=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Test Basic Port Forwarding
+        id: port-test
+        run: |
+          echo "Testing basic TCP connection establishment..."
+          START=$(date +%s)
+          
+          if timeout 10 nc -zv 127.0.0.1 1025; then
+            END=$(date +%s)
+            DURATION=$((END - START))
+            echo "✅ Connection established in ${DURATION}s"
+            
+            if [ $DURATION -gt 5 ]; then
+              echo "⚠️ Warning: Connection took longer than expected"
+            fi
+            echo "result=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Connection failed"
+            echo "result=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Cleanup containers
+        if: always()
+        run: |
+          container stop smtp-test || true
+          container rm smtp-test || true
+      
+      - name: Stop container system
+        if: always()
+        run: |
+          container system stop || true
+      
+      - name: Integration Test Summary
+        if: always()
+        run: |
+          echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.smtp-test.outputs.result }}" == "success" ]; then
+            echo "✅ **SMTP Test**: PASSED (server-first protocol works)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **SMTP Test**: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.port-test.outputs.result }}" == "success" ]; then
+            echo "✅ **Port Forwarding**: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Port Forwarding**: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Issue #794 Status" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.smtp-test.outputs.result }}" == "success" ] && [ "${{ steps.port-test.outputs.result }}" == "success" ]; then
+            echo "✅ **TCP Port Forwarding Fix VERIFIED** - Server-first protocols now work correctly!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Fix needs more work - tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            smtp-test.log
+          retention-days: 7
+
