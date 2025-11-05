@@ -2,8 +2,11 @@ name: Stale PR and Issue Management
 
 on:
   schedule:
-    - cron: '0 0 * * *' 
+    - cron: '*/5 * * * *'  # TEST: Every 5 minutes for testing
   workflow_dispatch:
+  push:
+    branches:
+      - test-stale-workflow  # Only run on test branch
 
 permissions:
   contents: read
@@ -23,11 +26,11 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           
-          days-before-stale: 60
-          days-before-close: 14
+          days-before-stale: 0  # TEST: 0 days = marks stale immediately
+          days-before-close: 0  # TEST: 0 days = closes on next run
           
           stale-pr-message: |
-            This pull request has been inactive for 60 days and will be marked as stale.
+            ⚠️ **TEST MODE** - This PR has been inactive and will be marked as stale for testing purposes.
             
             If you're still working on this, please:
             - Update the PR with recent changes
@@ -50,11 +53,11 @@ jobs:
           
           stale-pr-label: 'stale'
           
-          days-before-issue-stale: 90
-          days-before-issue-close: 30
+          days-before-issue-stale: 0  # TEST: 0 days = marks stale immediately
+          days-before-issue-close: 0  # TEST: 0 days = closes on next run
           
           stale-issue-message: |
-            This issue has been inactive for 90 days and will be marked as stale.
+            ⚠️ **TEST MODE** - This issue has been inactive and will be marked as stale for testing purposes.
             
             If this is still relevant, please:
             - Provide an update or additional context
