@@ -27,7 +27,7 @@ public struct ContainerCLI: AsyncParsableCommand {
 
     public static let configuration = Application.configuration
 
-    public static func main() async throws {
+     public static func main() async throws {
         try await Application.main()
     }
 
