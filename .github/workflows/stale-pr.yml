@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '*/5 * * * *'  # TEST: Every 5 minutes for testing
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
       - test-stale-workflow  # Only run on test branch
 
