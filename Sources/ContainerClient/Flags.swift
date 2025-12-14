@@ -184,6 +184,9 @@ public struct Flags {
         @Flag(name: [.customLong("rm"), .long], help: "Remove the container after it stops")
         public var remove = false
 
+        @Flag(name: .long, help: "Enable Rosetta in the container")
+        public var rosetta = false
+
         @Flag(name: .long, help: "Forward SSH agent socket to container")
         public var ssh = false
 
@@ -211,5 +214,12 @@ public struct Flags {
 
         @Option(name: .long, help: ArgumentHelp("Progress type (format: none|ansi)", valueName: "type"))
         public var progress: ProgressType = .ansi
+    }
+
+    public struct ImageFetch: ParsableArguments {
+        public init() {}
+
+        @Option(name: .long, help: "Maximum number of concurrent downloads (default: 3)")
+        public var maxConcurrentDownloads: Int = 3
     }
 }

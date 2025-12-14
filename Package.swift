@@ -1,4 +1,5 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.0
+// NOTE: Temporarily set to 6.0 for testing. Original is 6.2
 //===----------------------------------------------------------------------===//
 // Copyright © 2025 Apple Inc. and the container project authors.
 //
@@ -22,8 +23,8 @@ import PackageDescription
 
 let releaseVersion = ProcessInfo.processInfo.environment["RELEASE_VERSION"] ?? "0.0.0"
 let gitCommit = ProcessInfo.processInfo.environment["GIT_COMMIT"] ?? "unspecified"
-let builderShimVersion = "0.6.3"
-let scVersion = "0.13.0"
+let builderShimVersion = "0.7.0"
+let scVersion = "0.1.0"  // Using version < 0.2.0 to avoid Swift 6.2 requirement
 
 let package = Package(
     name: "container",
@@ -274,6 +275,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Containerization", package: "containerization"),
+                "ContainerVersion",
                 "CVersion",
             ]
         ),
@@ -282,6 +284,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ContainerizationOS", package: "containerization"),
+                "ContainerVersion",
             ]
         ),
         .testTarget(
@@ -301,6 +304,7 @@ let package = Package(
             dependencies: [
                 .product(name: "ContainerizationExtras", package: "containerization"),
                 .product(name: "Logging", package: "swift-log"),
+                "CAuditToken",
             ]
         ),
         .target(
@@ -371,6 +375,14 @@ let package = Package(
                 .define("GIT_COMMIT", to: "\"\(gitCommit)\""),
                 .define("RELEASE_VERSION", to: "\"\(releaseVersion)\""),
                 .define("BUILDER_SHIM_VERSION", to: "\"\(builderShimVersion)\""),
+            ],
+        ),
+        .target(
+            name: "CAuditToken",
+            dependencies: [],
+            publicHeadersPath: "include",
+            linkerSettings: [
+                .linkedLibrary("bsm")
             ]
         ),
     ]
