@@ -45,3 +45,8 @@ jobs:
           echo "⚠️ Build skipped - requires Swift 6.2 (GitHub runners have Swift 6.1)"
           echo "✅ Your code will be built and tested on Apple's CI when you create a PR"
           echo "✅ Formatting checks passed - your code is ready for PR!"
+
+      - name: Try to build (may fail due to dependencies)
+        run: |
+          swift build -c debug || echo "Build failed - likely due to vmnet/containerization dependencies"
+        continue-on-error: true
