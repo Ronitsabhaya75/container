@@ -1,4 +1,5 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.0
+// NOTE: Temporarily set to 6.0 for testing. Original is 6.2
 //===----------------------------------------------------------------------===//
 // Copyright © 2025 Apple Inc. and the container project authors.
 //
