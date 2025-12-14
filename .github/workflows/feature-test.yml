@@ -43,14 +43,10 @@ jobs:
       - name: Build project (debug)
         run: |
           make container
-        env:
-          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
 
       - name: Run unit tests
         run: |
           swift test
-        env:
-          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
 
       - name: Test I/O stats feature
         run: |
@@ -72,8 +68,6 @@ jobs:
           
           # Cleanup
           bin/debug/container rm -f test-io-stats || true
-        env:
-          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
         continue-on-error: true
 
       - name: Integration tests
@@ -82,8 +76,6 @@ jobs:
           trap 'rm -rf "${APP_ROOT}"; echo Removing data directory ${APP_ROOT}' EXIT
           echo "Created data directory ${APP_ROOT}"
           make APP_ROOT="${APP_ROOT}" test install-kernel integration
-        env:
-          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
         continue-on-error: true
 
       - name: Upload build artifacts
