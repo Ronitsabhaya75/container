@@ -24,7 +24,7 @@ import PackageDescription
 let releaseVersion = ProcessInfo.processInfo.environment["RELEASE_VERSION"] ?? "0.0.0"
 let gitCommit = ProcessInfo.processInfo.environment["GIT_COMMIT"] ?? "unspecified"
 let builderShimVersion = "0.7.0"
-let scVersion = "0.10.0"  // Testing with older version compatible with Swift 6.0
+let scVersion = "0.1.0"  // Using version < 0.2.0 to avoid Swift 6.2 requirement
 
 let package = Package(
     name: "container",
