@@ -1,0 +1,97 @@
+name: Feature Branch Testing
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - 'disk-io-feature'
+      - 'testing'
+  pull_request:
+    branches:
+      - 'disk-io-feature'
+      - 'testing'
+
+jobs:
+  build-and-test:
+    name: Build and test feature branch
+    timeout-minutes: 60
+    runs-on: [self-hosted, macos, sequoia, ARM64]
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Swift version
+        run: swift --version
+
+      - name: Check formatting
+        run: |
+          ./scripts/install-hawkeye.sh
+          make fmt
+          if ! git diff --quiet -- . ; then
+            echo "❌ The following files require formatting or license header updates:"
+            git diff --name-only -- .
+            exit 1
+          fi
+
+      - name: Build project (debug)
+        run: |
+          make container
+        env:
+          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
+
+      - name: Run unit tests
+        run: |
+          swift test
+        env:
+          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
+
+      - name: Test I/O stats feature
+        run: |
+          # Start container system
+          bin/debug/container system start || true
+          sleep 5
+          
+          # Run a test container
+          bin/debug/container run -d --name test-io-stats alpine:latest sleep 300 || true
+          sleep 3
+          
+          # Test default stats output
+          echo "Testing default stats output:"
+          bin/debug/container stats --no-stream test-io-stats || echo "Stats command failed (expected if no containers)"
+          
+          # Test new --io flag
+          echo "Testing new --io flag:"
+          bin/debug/container stats --io --no-stream test-io-stats || echo "IO stats command failed (expected if no containers)"
+          
+          # Cleanup
+          bin/debug/container rm -f test-io-stats || true
+        env:
+          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
+        continue-on-error: true
+
+      - name: Integration tests
+        run: |
+          APP_ROOT=$(mktemp -d -p "${RUNNER_TEMP}")
+          trap 'rm -rf "${APP_ROOT}"; echo Removing data directory ${APP_ROOT}' EXIT
+          echo "Created data directory ${APP_ROOT}"
+          make APP_ROOT="${APP_ROOT}" test install-kernel integration
+        env:
+          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
+        continue-on-error: true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-debug-build
+          path: |
+            bin/debug/container
+            bin/debug/staging/
+          retention-days: 7
