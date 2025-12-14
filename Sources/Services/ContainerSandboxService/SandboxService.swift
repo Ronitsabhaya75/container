@@ -281,23 +281,23 @@ public actor SandboxService {
             let totalWriteBytes = stats.blockIO.devices.reduce(0) { $0 + $1.writeBytes }
             let estimatedReadOps = Double(totalReadBytes) / 4096.0
             let estimatedWriteOps = Double(totalWriteBytes) / 4096.0
-            
+
             // TODO: Collect latency metrics from Containerization framework
             // These would ideally come from blockIO.devices with new properties:
             // - readLatencyMicros, writeLatencyMicros, fsyncLatencyMicros
             let readLatency: Double? = nil  // stats.blockIO.averageReadLatencyMs
-            let writeLatency: Double? = nil // stats.blockIO.averageWriteLatencyMs
-            let fsyncLatency: Double? = nil // stats.blockIO.averageFsyncLatencyMs
-            
+            let writeLatency: Double? = nil  // stats.blockIO.averageWriteLatencyMs
+            let fsyncLatency: Double? = nil  // stats.blockIO.averageFsyncLatencyMs
+
             // TODO: Get queue depth from Containerization framework
-            let queueDepth: UInt64? = nil // stats.blockIO.queueDepth
-            
+            let queueDepth: UInt64? = nil  // stats.blockIO.queueDepth
+
             // TODO: Get dirty pages percentage from memory stats
-            let dirtyPages: Double? = nil // stats.memory.dirtyPagesPercent
-            
+            let dirtyPages: Double? = nil  // stats.memory.dirtyPagesPercent
+
             // TODO: Detect storage backend type from device information
             // This would require inspecting the block device type in the VM
-            let backend: String? = "virtio" // Default for VM-based containers
+            let backend: String? = "virtio"  // Default for VM-based containers
 
             let containerStats = ContainerStats(
                 id: stats.id,
