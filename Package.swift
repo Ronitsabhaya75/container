@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 //===----------------------------------------------------------------------===//
 // Copyright © 2025 Apple Inc. and the container project authors.
 //
@@ -23,7 +23,7 @@ import PackageDescription
 let releaseVersion = ProcessInfo.processInfo.environment["RELEASE_VERSION"] ?? "0.0.0"
 let gitCommit = ProcessInfo.processInfo.environment["GIT_COMMIT"] ?? "unspecified"
 let builderShimVersion = "0.7.0"
-let scVersion = "0.15.0"  // Temporarily using older version for testing with Swift 6.0
+let scVersion = "0.16.2"
 
 let package = Package(
     name: "container",
