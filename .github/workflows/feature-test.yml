@@ -17,7 +17,7 @@ jobs:
   build-and-test:
     name: Build and test feature branch
     timeout-minutes: 60
-    runs-on: [self-hosted, macos, sequoia, ARM64]
+    runs-on: macos-latest
     permissions:
       contents: read
       packages: read
