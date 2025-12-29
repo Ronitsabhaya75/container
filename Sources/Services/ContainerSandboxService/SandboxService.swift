@@ -120,8 +120,10 @@ public actor SandboxService {
 
             var config = try bundle.configuration
 
+            var kernel = try bundle.kernel
+            kernel.commandLine.kernelArgs.append("oops=panic")
             let vmm = VZVirtualMachineManager(
-                kernel: try bundle.kernel,
+                kernel: kernel,
                 initialFilesystem: bundle.initialFilesystem.asMount,
                 rosetta: config.rosetta,
                 logger: self.log
@@ -129,9 +131,10 @@ public actor SandboxService {
 
             // Dynamically configure the DNS nameserver from a network if no explicit configuration
             if let dns = config.dns, dns.nameservers.isEmpty {
-                if let nameserver = try await self.getDefaultNameserver(attachmentConfigurations: config.networks) {
+                let defaultNameservers = try await self.getDefaultNameservers(attachmentConfigurations: config.networks)
+                if !defaultNameservers.isEmpty {
                     config.dns = ContainerConfiguration.DNSConfiguration(
-                        nameservers: [nameserver],
+                        nameservers: defaultNameservers,
                         domain: dns.domain,
                         searchDomains: dns.searchDomains,
                         options: dns.options
@@ -190,11 +193,10 @@ public actor SandboxService {
                 // a default /etc/hosts.
                 var hostsEntries = [Hosts.Entry.localHostIPV4()]
                 if !interfaces.isEmpty {
-                    let primaryIfaceAddr = interfaces[0].address
-                    let ip = primaryIfaceAddr.split(separator: "/")
+                    let primaryIfaceAddr = interfaces[0].ipv4Address
                     hostsEntries.append(
                         Hosts.Entry(
-                            ipAddress: String(ip[0]),
+                            ipAddress: primaryIfaceAddr.address.description,
                             hostnames: [czConfig.hostname],
                         ))
                 }
@@ -215,7 +217,7 @@ public actor SandboxService {
                 try await container.create()
                 try await self.monitor.registerProcess(id: config.id, onExit: self.onContainerExit)
                 if !container.interfaces.isEmpty {
-                    let firstCidr = try CIDRAddress(container.interfaces[0].address)
+                    let firstCidr = container.interfaces[0].ipv4Address
                     let ipAddress = firstCidr.address.description
                     try await self.startSocketForwarders(containerIpAddress: ipAddress, publishedPorts: config.publishedPorts)
                 }
@@ -858,17 +860,17 @@ public actor SandboxService {
         Self.configureInitialProcess(czConfig: &czConfig, config: config)
     }
 
-    private func getDefaultNameserver(attachmentConfigurations: [AttachmentConfiguration]) async throws -> String? {
+    private func getDefaultNameservers(attachmentConfigurations: [AttachmentConfiguration]) async throws -> [String] {
         for attachmentConfiguration in attachmentConfigurations {
             let client = NetworkClient(id: attachmentConfiguration.network)
             let state = try await client.state()
             guard case .running(_, let status) = state else {
                 continue
             }
-            return status.gateway
+            return [status.ipv4Gateway.description]
         }
 
-        return nil
+        return []
     }
 
     private static func configureInitialProcess(
