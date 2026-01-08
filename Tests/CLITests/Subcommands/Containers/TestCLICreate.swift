@@ -1,5 +1,5 @@
 //===----------------------------------------------------------------------===//
-// Copyright © 2025 Apple Inc. and the container project authors.
+// Copyright © 2025-2026 Apple Inc. and the container project authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 // limitations under the License.
 //===----------------------------------------------------------------------===//
 
+import ContainerizationExtras
 import Foundation
 import Testing
 
@@ -32,7 +33,7 @@ class TestCLICreateCommand: CLITest {
 
     @Test func testCreateWithMACAddress() throws {
         let name = getTestName()
-        let expectedMAC = "02:42:ac:11:00:03"
+        let expectedMAC = try MACAddress("02:42:ac:11:00:03")
         #expect(throws: Never.self, "expected container create with MAC address to succeed") {
             try doCreate(name: name, networks: ["default,mac=\(expectedMAC)"])
             try doStart(name: name)
@@ -43,7 +44,10 @@ class TestCLICreateCommand: CLITest {
             try waitForContainerRunning(name)
             let inspectResp = try inspectContainer(name)
             #expect(inspectResp.networks.count > 0, "expected at least one network attachment")
-            #expect(inspectResp.networks[0].macAddress == expectedMAC, "expected MAC address \(expectedMAC), got \(inspectResp.networks[0].macAddress ?? "nil")")
+            let actualMAC = inspectResp.networks[0].macAddress?.description ?? "nil"
+            #expect(
+                actualMAC == expectedMAC.description, "expected MAC address \(expectedMAC), got \(actualMAC)"
+            )
         }
     }
 
