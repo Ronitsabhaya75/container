@@ -14,9 +14,10 @@ on:
 jobs:
   buildAndTest:
     name: Build and test the project
-    if: github.repository == 'apple/container'
+    # Temporarily allow fork CI for testing (remove before upstream PR)
+    # if: github.repository == 'apple/container'
     timeout-minutes: 60
-    runs-on: [self-hosted, macos, tahoe, ARM64]
+    runs-on: macos-latest  # Use GitHub-hosted runner instead of Apple's self-hosted
     permissions:
       contents: read
       packages: read
