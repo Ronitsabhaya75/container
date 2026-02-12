@@ -89,13 +89,12 @@ extension Application {
 
             try ServiceManager.register(plistPath: plistURL.path)
 
-            
             let maxRetries = 5
             var lastError: Error?
             var delay: Duration = .seconds(1)
             let maxDelay: Duration = .seconds(5)
             let backoffMultiplier = 1.5
-            
+
             print("Verifying apiserver is running...")
             for attempt in 1...maxRetries {
                 do {
@@ -103,17 +102,16 @@ extension Application {
                     break
                 } catch {
                     lastError = error
-                    if attempt < maxRetries {
-                        print("Health check attempt \(attempt) failed, retrying in \(delay)...")
-                        try await Task.sleep(for: delay)
-                        let nextDelay = Duration.seconds(Double(delay.components.seconds) * backoffMultiplier)
-                        delay = min(nextDelay, maxDelay)
-                    } else {
+                    guard attempt < maxRetries else {
                         throw ContainerizationError(
                             .internalError,
                             message: "failed to get a response from apiserver after \(maxRetries) attempts: \(error)"
                         )
                     }
+                    print("Health check attempt \(attempt) failed, retrying in \(delay)...")
+                    try await Task.sleep(for: delay)
+                    let nextDelay = Duration.seconds(Double(delay.components.seconds) * backoffMultiplier)
+                    delay = min(nextDelay, maxDelay)
                 }
             }
 
