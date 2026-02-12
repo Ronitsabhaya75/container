@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.1  // Temporarily downgraded for GitHub-hosted runner testing
 //===----------------------------------------------------------------------===//
 // Copyright © 2025-2026 Apple Inc. and the container project authors.
 //
