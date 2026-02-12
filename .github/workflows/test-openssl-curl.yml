@@ -13,7 +13,7 @@ on:
 jobs:
   test-curl:
     name: Test HTTPS in x86_64 container
-    runs-on: [self-hosted, macos, tahoe, ARM64]
+    runs-on: macos-latest  # Changed from self-hosted to GitHub-hosted runner for fork testing
     timeout-minutes: 30
     
     steps:
@@ -23,8 +23,6 @@ jobs:
       - name: Build container CLI
         run: |
           make container
-        env:
-          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
       
       - name: Test curl in AlmaLinux 10 x86_64 container
         run: |
