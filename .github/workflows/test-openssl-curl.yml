@@ -1,0 +1,70 @@
+name: Test OpenSSL Curl Fix
+
+on:
+  push:
+    branches:
+      - curl-testing
+      - x64-64-rosetta-issue
+  pull_request:
+    paths:
+      - 'Sources/Services/ContainerSandboxService/**'
+      - '.github/workflows/test-openssl-curl.yml'
+
+jobs:
+  test-curl:
+    name: Test HTTPS in x86_64 container
+    runs-on: [self-hosted, macos, tahoe, ARM64]
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Build container CLI
+        run: |
+          make container
+        env:
+          DEVELOPER_DIR: "/Applications/Xcode-latest.app/Contents/Developer"
+      
+      - name: Test curl in AlmaLinux 10 x86_64 container
+        run: |
+          set -e
+          
+          echo "Testing HTTPS connections in x86_64 container..."
+          
+          # Run container and test curl
+          ./build/container run --rm --arch=x86_64 almalinux:10 /bin/bash -c '
+            echo "Container architecture: $(uname -m)"
+            echo "Testing curl to https://mirrors.almalinux.org"
+            curl -v --max-time 30 https://mirrors.almalinux.org 2>&1 | tee /tmp/curl_output.txt
+            
+            # Check if curl succeeded
+            if grep -q "error:030000EA:digital envelope routines::provider signature failure" /tmp/curl_output.txt; then
+              echo "❌ FAILED: OpenSSL certificate verification error still occurs"
+              exit 1
+            fi
+            
+            if grep -q "TLS connect error" /tmp/curl_output.txt; then
+              echo "❌ FAILED: TLS connection failed"
+              exit 1
+            fi
+            
+            echo "✅ SUCCESS: HTTPS curl worked correctly"
+          '
+        
+      - name: Test dnf package manager
+        run: |
+          set -e
+          
+          echo "Testing dnf package manager in x86_64 container..."
+          
+          ./build/container run --rm --arch=x86_64 almalinux:10 /bin/bash -c '
+            echo "Attempting to refresh package metadata..."
+            if dnf upgrade -y --refresh --downloadonly 2>&1 | tee /tmp/dnf_output.txt; then
+              echo "✅ SUCCESS: dnf can download package metadata"
+            else
+              echo "❌ FAILED: dnf cannot access repositories"
+              cat /tmp/dnf_output.txt
+              exit 1
+            fi
+          '
