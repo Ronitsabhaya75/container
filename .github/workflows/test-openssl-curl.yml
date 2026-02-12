@@ -20,9 +20,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Build container CLI
+      - name: Download prebuilt container CLI
         run: |
-          make container
+          echo "Downloading latest container CLI release..."
+          # Get latest release from GitHub
+          LATEST_URL=$(curl -s https://api.github.com/repos/apple/container/releases/latest | grep "browser_download_url.*container-.*-macos.tar.gz" | cut -d '"' -f 4 | head -n 1)
+          
+          if [ -z "$LATEST_URL" ]; then
+            echo "No prebuilt binary found, using brew instead"
+            brew install container
+          else
+            echo "Downloading from: $LATEST_URL"
+            curl -L -o container.tar.gz "$LATEST_URL"
+            tar -xzf container.tar.gz
+            chmod +x container
+            sudo mv container /usr/local/bin/
+          fi
+          
+          container --version
       
       - name: Test curl in AlmaLinux 10 x86_64 container
         run: |
