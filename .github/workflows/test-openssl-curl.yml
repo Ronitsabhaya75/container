@@ -13,30 +13,19 @@ on:
 jobs:
   test-curl:
     name: Test HTTPS in x86_64 container
-    runs-on: macos-15  # Latest available GitHub-hosted macOS runner
+    # This requires Apple's self-hosted macOS Tahoe runners with container CLI pre-installed
+    # GitHub-hosted runners can't build this (requires Swift 6.2) or install via brew (requires Xcode 26)
+    if: github.repository == 'apple/container'
+    runs-on: [self-hosted, macos, tahoe, ARM64]
     timeout-minutes: 30
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Download prebuilt container CLI
+      - name: Verify container CLI is available
         run: |
-          echo "Downloading latest container CLI release..."
-          # Get latest release from GitHub
-          LATEST_URL=$(curl -s https://api.github.com/repos/apple/container/releases/latest | grep "browser_download_url.*container-.*-macos.tar.gz" | cut -d '"' -f 4 | head -n 1)
-          
-          if [ -z "$LATEST_URL" ]; then
-            echo "No prebuilt binary found, using brew instead"
-            brew install container
-          else
-            echo "Downloading from: $LATEST_URL"
-            curl -L -o container.tar.gz "$LATEST_URL"
-            tar -xzf container.tar.gz
-            chmod +x container
-            sudo mv container /usr/local/bin/
-          fi
-          
+          which container
           container --version
       
       - name: Test curl in AlmaLinux 10 x86_64 container
